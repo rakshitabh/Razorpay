@@ -80,20 +80,22 @@ export const registerUser = async (req, res) => {
         email: cleanEmail,
         passwordHash: password,
         role: role || 'analyst',
-        isVerified: true,
-        otp: null,
-        otpExpiry: null
+        isVerified: false,
+        otp: otp,
+        otpExpiry: otpExpiry
       });
       console.log('[Auth] MongoDB save success for:', cleanEmail);
 
+      try {
+        await sendOTPEmail(cleanEmail, otp, 'VERIFICATION');
+      } catch (mailErr) {
+        console.error('Failed to send OTP email:', mailErr);
+      }
+
       return res.status(201).json({
-        message: 'Account created successfully.',
-        _id: user._id,
-        name: user.name,
+        message: 'Account created. OTP sent.',
         email: user.email,
-        role: user.role,
-        token: generateToken(user._id),
-        isVerified: true
+        isVerified: false
       });
     } else {
       const userExists = memoryStore.users.find(u => u.email === cleanEmail);
@@ -108,9 +110,9 @@ export const registerUser = async (req, res) => {
         email: cleanEmail,
         passwordHash: hashedPassword,
         role: role || 'analyst',
-        isVerified: true,
-        otp: null,
-        otpExpiry: null,
+        isVerified: false,
+        otp: otp,
+        otpExpiry: otpExpiry,
         createdAt: new Date(),
         status: 'Active',
         lastLogin: null
@@ -119,14 +121,16 @@ export const registerUser = async (req, res) => {
       memoryStore.users.push(user);
       console.log('[Auth] Memory save success for:', cleanEmail);
 
+      try {
+        await sendOTPEmail(cleanEmail, otp, 'VERIFICATION');
+      } catch (mailErr) {
+        console.error('Failed to send OTP email:', mailErr);
+      }
+
       return res.status(201).json({
-        message: 'Account created successfully.',
-        _id: user._id,
-        name: user.name,
+        message: 'Account created. OTP sent.',
         email: user.email,
-        role: user.role,
-        token: generateToken(user._id),
-        isVerified: true
+        isVerified: false
       });
     }
   } catch (error) {
@@ -457,8 +461,24 @@ export const loginUser = async (req, res) => {
       }
 
       if (!user.isVerified) {
-        user.isVerified = true;
+        // Send a new OTP
+        const otp = generateOTP();
+        const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+        user.otp = otp;
+        user.otpExpiry = otpExpiry;
         await user.save();
+        
+        try {
+          await sendOTPEmail(cleanEmail, otp, 'VERIFICATION');
+        } catch (mailErr) {
+          console.error('Failed to send OTP email:', mailErr);
+        }
+
+        return res.status(403).json({ 
+          message: 'Email not verified. A new OTP has been sent to your email.', 
+          isVerified: false, 
+          email: user.email 
+        });
       }
 
       if (await user.matchPassword(password)) {
@@ -513,7 +533,22 @@ export const loginUser = async (req, res) => {
       }
 
       if (!user.isVerified) {
-        memoryStore.users[userIdx].isVerified = true;
+        const otp = generateOTP();
+        const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+        memoryStore.users[userIdx].otp = otp;
+        memoryStore.users[userIdx].otpExpiry = otpExpiry;
+        
+        try {
+          await sendOTPEmail(cleanEmail, otp, 'VERIFICATION');
+        } catch (mailErr) {
+          console.error('Failed to send OTP email:', mailErr);
+        }
+
+        return res.status(403).json({ 
+          message: 'Email not verified. A new OTP has been sent to your email.', 
+          isVerified: false, 
+          email: user.email 
+        });
       }
 
       const passMatches = await bcrypt.compare(password, user.passwordHash);

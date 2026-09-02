@@ -145,6 +145,13 @@ function AppContent() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Registration failed.');
 
+        if (!data.isVerified) {
+          setPendingEmail(data.email);
+          setAuthMode('verify-otp');
+          setError('Account created. Please check your email for the verification OTP.');
+          return;
+        }
+
         setToken(data.token);
         setUser({
           id: data._id,
