@@ -74,65 +74,29 @@ export const registerUser = async (req, res) => {
       if (userExists) {
         return res.status(400).json({ message: 'Email address already registered.' });
       }
-
-      const user = await User.create({
-        name,
-        email: cleanEmail,
-        passwordHash: password,
-        role: role || 'analyst',
-        isVerified: false,
-        otp: otp,
-        otpExpiry: otpExpiry
-      });
-      console.log('[Auth] MongoDB save success for:', cleanEmail);
-
-      try {
-        await sendOTPEmail(cleanEmail, otp, 'VERIFICATION');
-      } catch (mailErr) {
-        console.error('Failed to send OTP email:', mailErr);
-      }
-
-      return res.status(201).json({
-        message: 'Account created. OTP sent.',
-        email: user.email,
-        isVerified: false
-      });
     } else {
       const userExists = memoryStore.users.find(u => u.email === cleanEmail);
       if (userExists) {
         return res.status(400).json({ message: 'Email address already registered.' });
       }
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const user = {
-        _id: new mongoose.Types.ObjectId().toString(),
-        name,
-        email: cleanEmail,
-        passwordHash: hashedPassword,
-        role: role || 'analyst',
-        isVerified: false,
-        otp: otp,
-        otpExpiry: otpExpiry,
-        createdAt: new Date(),
-        status: 'Active',
-        lastLogin: null
-      };
-
-      memoryStore.users.push(user);
-      console.log('[Auth] Memory save success for:', cleanEmail);
-
-      try {
-        await sendOTPEmail(cleanEmail, otp, 'VERIFICATION');
-      } catch (mailErr) {
-        console.error('Failed to send OTP email:', mailErr);
-      }
-
-      return res.status(201).json({
-        message: 'Account created. OTP sent.',
-        email: user.email,
-        isVerified: false
-      });
     }
+
+    memoryStore.pendingRegistrations.set(cleanEmail, {
+      name, email: cleanEmail, password, role: role || 'analyst', otp, otpExpiry
+    });
+    console.log('[Auth] Registration pending OTP verification for:', cleanEmail);
+
+    try {
+      await sendOTPEmail(cleanEmail, otp, 'VERIFICATION');
+    } catch (mailErr) {
+      console.error('Failed to send OTP email:', mailErr);
+    }
+
+    return res.status(201).json({
+      message: 'Account created. OTP sent.',
+      email: cleanEmail,
+      isVerified: false
+    });
   } catch (error) {
     console.error(`Register Error: ${error.message}`);
     return res.status(500).json({ message: error.message || 'Server registration failed.' });
@@ -155,6 +119,61 @@ export const verifyOTP = async (req, res) => {
   try {
     const isDbConnected = mongoose.connection.readyState === 1;
 
+    // 1. Check if the user is in pending registrations (New Signup Flow)
+    if (memoryStore.pendingRegistrations.has(cleanEmail)) {
+      const pending = memoryStore.pendingRegistrations.get(cleanEmail);
+      
+      if (pending.otp !== otp) {
+        return res.status(400).json({ message: 'Invalid verification OTP.' });
+      }
+      if (new Date() > pending.otpExpiry) {
+        return res.status(400).json({ message: 'Verification OTP has expired. Request a new code.' });
+      }
+
+      let newUser;
+      if (isDbConnected) {
+        newUser = await User.create({
+          name: pending.name,
+          email: pending.email,
+          passwordHash: pending.password,
+          role: pending.role,
+          isVerified: true,
+          otp: null,
+          otpExpiry: null
+        });
+      } else {
+        const hashedPassword = await bcrypt.hash(pending.password, 10);
+        newUser = {
+          _id: new mongoose.Types.ObjectId().toString(),
+          name: pending.name,
+          email: pending.email,
+          passwordHash: hashedPassword,
+          role: pending.role,
+          isVerified: true,
+          otp: null,
+          otpExpiry: null,
+          createdAt: new Date(),
+          status: 'Active',
+          lastLogin: null
+        };
+        memoryStore.users.push(newUser);
+      }
+
+      memoryStore.pendingRegistrations.delete(cleanEmail);
+      console.log('[Auth] OTP verification success. User stored in DB:', cleanEmail);
+
+      return res.status(200).json({
+        message: 'Email verified. Session authorized.',
+        _id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        token: generateToken(newUser._id),
+        isVerified: true
+      });
+    }
+
+    // 2. Check if the user is already in the DB (Login verification flow)
     if (isDbConnected) {
       const user = await User.findOne({ email: cleanEmail });
       if (!user) {
@@ -247,6 +266,22 @@ export const resendOTP = async (req, res) => {
     console.log('[Auth] OTP generation (Resend):', otp);
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
 
+    // 1. Check pending registrations
+    if (memoryStore.pendingRegistrations.has(cleanEmail)) {
+      const pending = memoryStore.pendingRegistrations.get(cleanEmail);
+      pending.otp = otp;
+      pending.otpExpiry = otpExpiry;
+      memoryStore.pendingRegistrations.set(cleanEmail, pending);
+      
+      try {
+        await sendOTPEmail(cleanEmail, otp, 'VERIFICATION');
+      } catch (mailError) {
+        console.error('[Mailer] Resend OTP email send failure:', mailError.message);
+      }
+      return res.json({ message: 'New verification OTP dispatched to email.' });
+    }
+
+    // 2. Check DB
     if (isDbConnected) {
       const user = await User.findOne({ email: cleanEmail });
       if (!user) {

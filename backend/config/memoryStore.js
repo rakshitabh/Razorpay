@@ -8,6 +8,7 @@ class MemoryStore {
     this.agentExecutions = [];
     this.auditLogs = [];
     this.notes = [];
+    this.pendingRegistrations = new Map();
   }
 
   clear() {
@@ -18,6 +19,7 @@ class MemoryStore {
     this.agentExecutions = [];
     this.auditLogs = [];
     this.notes = [];
+    this.pendingRegistrations.clear();
   }
 }
 
