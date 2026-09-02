@@ -87,12 +87,13 @@ export default function Sidebar({
       <div>
         {/* Brand logo area */}
         <div className="flex items-center space-x-3 p-4 border-b border-[#2A3A52] overflow-hidden">
-          <div className="w-8 h-8 rounded bg-[#38BDF8]/15 border border-[#38BDF8]/40 flex items-center justify-center text-[#38BDF8] shrink-0 font-bold">
+          <div className="w-8 h-8 rounded bg-gradient-to-br from-[#38BDF8]/20 to-[#0284C7]/20 border border-[#38BDF8]/50 flex items-center justify-center text-[#38BDF8] shrink-0 font-bold shadow-sm shadow-[#38BDF8]/20">
             <Shield className="w-4.5 h-4.5" />
           </div>
           {sidebarOpen && (
             <div className="transition-opacity duration-300">
-              <span className="text-[11px] font-bold font-sans tracking-wider text-white">RISK_INTEL // WORKSTATION</span>
+              <span className="text-sm font-bold font-sans tracking-wider text-white block leading-none">Aegis</span>
+              <span className="text-[9px] text-[#38BDF8] font-mono font-medium tracking-widest uppercase block mt-1">AI Risk Intel</span>
             </div>
           )}
         </div>

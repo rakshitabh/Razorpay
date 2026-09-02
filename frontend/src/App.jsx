@@ -148,7 +148,8 @@ function AppContent() {
         if (!data.isVerified) {
           setPendingEmail(data.email);
           setAuthMode('verify-otp');
-          setError('Account created. Please check your email for the verification OTP.');
+          setSuccess('Account created! A 6-digit verification code has been dispatched to your email.');
+          setError('');
           return;
         }
 
@@ -173,7 +174,8 @@ function AppContent() {
 
         if (res.status === 403 && !data.isVerified) {
           setPendingEmail(data.email);
-          setError(data.message);
+          setSuccess(data.message || 'Verification required. A code has been sent to your email.');
+          setError('');
           setAuthMode('verify-otp');
           return;
         }
@@ -325,10 +327,10 @@ function AppContent() {
               <Shield className="w-6 h-6" />
             </div>
             <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-              RISK_INTEL // WORKSTATION
+              AEGIS // WORKSTATION
             </h2>
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none mt-1">
-              Secure Operations Access
+              AI Risk Intelligence Platform
             </p>
           </div>
 
@@ -419,7 +421,13 @@ function AppContent() {
             )}
 
             {(authMode === 'verify-otp' || authMode === 'reset-password') && (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
+                {pendingEmail && (
+                  <div className="p-2.5 rounded bg-[#06B6D4]/10 border border-[#06B6D4]/30 text-slate-300 text-[11px] font-mono flex items-center space-x-2">
+                    <Shield className="w-4 h-4 text-[#06B6D4] shrink-0" />
+                    <span>OTP dispatched to: <strong className="text-white">{pendingEmail}</strong></span>
+                  </div>
+                )}
                 <label className="block text-[10px] text-slate-400 uppercase font-semibold">6-Digit Verification Code</label>
                 <div className="relative">
                   <KeyRound className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
@@ -503,9 +511,9 @@ function AppContent() {
             
             <button 
               onClick={() => { setViewMode('landing'); setError(''); setSuccess(''); }}
-              className="text-slate-600 hover:text-slate-400 cursor-pointer transition mt-2 border-t border-slate-800 pt-3"
+              className="text-slate-500 hover:text-[#38BDF8] cursor-pointer transition mt-2 border-t border-slate-800 pt-3 flex items-center justify-center gap-1"
             >
-              Back to SaaS Landing page
+              <span>Back to Aegis Landing page</span>
             </button>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bell, ShieldAlert, CheckCircle, Flame, FileText, X } from 'lucide-react';
 
 let notificationListeners = [];
@@ -21,13 +21,42 @@ export default function NotificationCenter() {
       id: '1',
       title: 'Platform Handshake Completed',
       type: 'info',
-      details: 'Risk engine connected to MongoDB and Gemini successfully.',
+      details: 'Aegis risk engine connected to MongoDB and Gemini successfully.',
       timestamp: 'Just now',
       unread: false
     }
   ]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    const handleScrollOrKey = (e) => {
+      if (e.type === 'keydown' && e.key === 'Escape') {
+        setDropdownOpen(false);
+      } else if (e.type === 'scroll') {
+        setDropdownOpen(false);
+      }
+    };
+
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
+      document.addEventListener('keydown', handleScrollOrKey);
+      window.addEventListener('scroll', handleScrollOrKey, true);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleScrollOrKey);
+      window.removeEventListener('scroll', handleScrollOrKey, true);
+    };
+  }, [dropdownOpen]);
 
   useEffect(() => {
     const handleNewNotification = (noti) => {
@@ -72,10 +101,11 @@ export default function NotificationCenter() {
   const unreadCount = notifications.filter(n => n.unread).length;
 
   return (
-    <div className="relative font-mono text-xs select-none">
+    <div ref={containerRef} className="relative font-mono text-xs select-none">
       {/* Bell Trigger */}
       <button 
         onClick={() => setDropdownOpen(!dropdownOpen)}
+        title="Notifications"
         className="p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 relative cursor-pointer transition"
       >
         <Bell className="w-4 h-4" />
@@ -90,8 +120,11 @@ export default function NotificationCenter() {
       {dropdownOpen && (
         <div className="absolute right-0 mt-2.5 w-80 bg-[#131C2E] border border-[#2A3A52] rounded-lg shadow-2xl overflow-hidden z-50">
           <div className="p-3 border-b border-[#2A3A52] flex items-center justify-between bg-[#0B1220]/60">
-            <span className="font-bold text-white uppercase text-[10px] tracking-wider">Alert Ledger</span>
-            <div className="space-x-2">
+            <span className="font-bold text-white uppercase text-[10px] tracking-wider flex items-center gap-1.5">
+              <Bell className="w-3.5 h-3.5 text-[#38BDF8]" />
+              Alert Ledger
+            </span>
+            <div className="flex items-center space-x-2">
               <button 
                 onClick={markAllRead} 
                 className="text-[9px] text-[#38BDF8] hover:text-[#38BDF8]/80 transition cursor-pointer"
@@ -104,6 +137,13 @@ export default function NotificationCenter() {
                 className="text-[9px] text-slate-500 hover:text-white transition cursor-pointer"
               >
                 Clear
+              </button>
+              <button 
+                onClick={() => setDropdownOpen(false)}
+                title="Close"
+                className="p-1 text-slate-400 hover:text-white hover:bg-slate-800/60 rounded ml-1 cursor-pointer transition"
+              >
+                <X className="w-3 h-3" />
               </button>
             </div>
           </div>

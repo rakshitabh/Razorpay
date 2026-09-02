@@ -109,17 +109,18 @@ export default function Navbar({ user, onLogout, activeTab, setActiveTab, onOpen
     <header className="border-b border-[#2A3A52] bg-[#131C2E] sticky top-0 z-50 px-4 md:px-6 py-2.5 no-print select-none font-sans">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
         
-        {/* Left Brand Area */}
+        {/* Left Context / Section Breadcrumb */}
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded bg-[#38BDF8]/15 border border-[#38BDF8]/40 flex items-center justify-center text-[#38BDF8]">
-            <Shield className="w-4.5 h-4.5" />
+          <div className="flex items-center space-x-2 text-xs font-sans">
+            <span className="text-slate-400 font-medium">Aegis</span>
+            <span className="text-slate-600">/</span>
+            <span className="text-white font-semibold tracking-wide">
+              {activeHelp?.title || 'Risk Intelligence'}
+            </span>
           </div>
-          <div>
-            <h1 className="text-sm font-bold tracking-wider text-white m-0 leading-none">RISK_INTEL // WORKSTATION</h1>
-            <p className="text-[9px] text-[#9CA3AF] leading-none mt-1 uppercase tracking-widest font-sans font-medium">
-              Unified Risk Operations Controller
-            </p>
-          </div>
+          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[9px] font-mono font-semibold bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/30">
+            SECURE
+          </span>
         </div>
 
         {/* Right Status Panel */}
