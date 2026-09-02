@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrainCircuit, Database, Cpu, ShieldAlert, FileText, Terminal, Settings } from 'lucide-react';
 
-export default function AiArchitecture() {
+export default function AiArchitecture({ token: propToken }) {
   const inputs = [
     { name: 'Security Logs', desc: 'Raw system logs (SSH auth tries, firewall blocked events, web traversal directories access).' },
     { name: 'Transaction Events', desc: 'Real-time financial transactions details (UPI requests, payout payloads, merchant transfers).' },
@@ -37,7 +37,8 @@ export default function AiArchitecture() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = propToken || localStorage.getItem('soc_token');
+        if (!token) return;
         const res = await fetch('/api/stats', { headers: { 'Authorization': `Bearer ${token}` }});
         if (res.ok) {
           const data = await res.json();

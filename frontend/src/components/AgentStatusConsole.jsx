@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Terminal } from 'lucide-react';
 
-export default function AgentStatusConsole() {
+export default function AgentStatusConsole({ token: propToken }) {
   const [executions, setExecutions] = useState([]);
   const consoleBodyRef = useRef(null);
 
   const fetchExecutions = async () => {
     try {
-      const token = localStorage.getItem('soc_token');
+      const token = propToken || localStorage.getItem('soc_token');
+      if (!token) return;
       const res = await fetch('/api/logs/executions', {
         headers: { 'Authorization': `Bearer ${token}` }
       });

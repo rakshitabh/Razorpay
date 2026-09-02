@@ -101,8 +101,15 @@ function AppContent() {
     window.fetch = async (...args) => {
       const response = await originalFetch(...args);
       if (response.status === 401) {
-        console.warn('Session expired or unauthorized. Logging out.');
-        handleLogout();
+        const [resource, config] = args;
+        const authHeader = config?.headers?.Authorization || config?.headers?.authorization;
+        const isProtectedApi = typeof resource === 'string' && resource.startsWith('/api/') && !resource.startsWith('/api/auth/');
+        
+        // Only trigger session termination if our active session token was rejected
+        if (isProtectedApi && authHeader && authHeader.includes(token)) {
+          console.warn('Session expired or unauthorized. Logging out.');
+          handleLogout();
+        }
       }
       return response;
     };
@@ -616,12 +623,12 @@ function AppContent() {
 
             {/* 5.9 Interactive Risk Workbench */}
             <Route path="/risk-workbench" element={
-              <RiskWorkbench />
+              <RiskWorkbench token={token} />
             } />
 
             {/* 5.95 AI Architecture Details */}
             <Route path="/ai-architecture" element={
-              <AiArchitecture />
+              <AiArchitecture token={token} />
             } />
 
             {/* 6. Incident reports manager */}
@@ -636,7 +643,7 @@ function AppContent() {
 
             {/* 8. Agent executions console log */}
             <Route path="/agent-activity" element={
-              <AgentStatusConsole />
+              <AgentStatusConsole token={token} />
             } />
 
             {/* 9. Profile settings */}

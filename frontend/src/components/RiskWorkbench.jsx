@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Database, Sliders, Shield, Terminal, ArrowRight, Info, Compass, HelpCircle, Activity, Workflow } from 'lucide-react';
 
-export default function RiskWorkbench() {
+export default function RiskWorkbench({ token: propToken }) {
   const [activeNode, setActiveNode] = useState('correlation-engine');
   
   const [ingestedEvents, setIngestedEvents] = useState(0);
@@ -11,7 +11,8 @@ export default function RiskWorkbench() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = propToken || localStorage.getItem('soc_token');
+        if (!token) return;
         const res = await fetch('/api/stats', { headers: { 'Authorization': `Bearer ${token}` }});
         if (res.ok) {
           const data = await res.json();
@@ -27,7 +28,7 @@ export default function RiskWorkbench() {
     fetchStats();
     const interval = setInterval(fetchStats, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [propToken]);
 
   const nodes = {
     'system-inputs': {
